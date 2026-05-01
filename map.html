@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="LegacyMC — Live verdenskort. Se nationer, territorier og aktive spillere i realtid." />
+  <title>LegacyMC — Verdenskort</title>
+  <link rel="icon" type="image/x-icon" href="images/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #070707;
+      --bg2:         #0d0d0d;
+      --card:        #111111;
+      --card2:       #171717;
+      --border:      rgba(255,255,255,0.07);
+      --border2:     rgba(255,255,255,0.14);
+      --text:        #ffffff;
+      --text2:       #999999;
+      --text3:       #555555;
+      --green:       #22c55e;
+      --red:         #ef4444;
+      --idle:        #f59e0b;
+      --r:           12px;
+      --t:           0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html, body { height: 100%; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+    /* ══════════════════════════════
+       NAV
+    ══════════════════════════════ */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      height: 62px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem;
+      background: rgba(7,7,7,0.7);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-bottom: 1px solid transparent;
+      transition: var(--t);
+    }
+    nav.scrolled {
+      background: rgba(7,7,7,0.95);
+      border-bottom-color: var(--border);
+    }
+
+    .nav-logo {
+      font-size: 1.15rem; font-weight: 900; letter-spacing: -0.03em;
+      text-decoration: none; color: var(--text);
+      display: flex; align-items: center; gap: 2px;
+    }
+    .nav-logo em { color: var(--text3); font-style: normal; font-weight: 400; }
+
+    .nav-links { display: flex; align-items: center; gap: 2px; list-style: none; }
+    .nav-links a {
+      color: var(--text2); text-decoration: none;
+      font-size: 0.845rem; font-weight: 500;
+      padding: 0.4rem 0.75rem; border-radius: 6px;
+      transition: var(--t);
+    }
+    .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.055); }
+    .nav-links a.active { color: var(--text); background: rgba(255,255,255,0.07); }
+
+    .nav-right { display: flex; align-items: center; gap: 0.65rem; }
+
+    .server-pill {
+      display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.3rem 0.8rem; border-radius: 20px;
+      font-size: 0.78rem; font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      border: 1px solid rgba(34,197,94,0.3);
+      background: rgba(34,197,94,0.08);
+      color: var(--green);
+      transition: var(--t);
+    }
+    .server-pill.offline {
+      border-color: rgba(239,68,68,0.3);
+      background: rgba(239,68,68,0.08);
+      color: var(--red);
+    }
+    .server-pill.unknown { border-color: var(--border2); background: transparent; color: var(--text3); }
+
+    .s-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: currentColor;
+      animation: blink 2.2s infinite;
+    }
+    .server-pill.offline .s-dot,
+    .server-pill.unknown .s-dot { animation: none; }
+
+    @keyframes blink {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .hamburger {
+      display: none; flex-direction: column; gap: 5px;
+      cursor: pointer; padding: 5px; border: none; background: none;
+    }
+    .hamburger span {
+      width: 22px; height: 2px; background: var(--text3);
+      border-radius: 2px; transition: var(--t);
+      display: block;
+    }
+    .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); background: var(--text2); }
+    .hamburger.open span:nth-child(2) { opacity: 0; }
+    .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); background: var(--text2); }
+
+    /* Mobile menu */
+    .mobile-menu {
+      display: none; position: fixed;
+      top: 62px; left: 0; right: 0; z-index: 999;
+      background: rgba(7,7,7,0.97);
+      backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--border);
+      flex-direction: column; gap: 2px;
+      padding: 0.75rem 1.5rem 1rem;
+    }
+    .mobile-menu.open { display: flex; }
+    .mobile-menu a {
+      color: var(--text2); text-decoration: none;
+      font-size: 0.9rem; font-weight: 500;
+      padding: 0.6rem 0.5rem; border-radius: 6px;
+      transition: var(--t);
+    }
+    .mobile-menu a:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+
+    /* ══════════════════════════════
+       MAP LAYOUT
+    ══════════════════════════════ */
+    .map-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding-top: 62px; /* nav height */
+    }
+
+    .map-header {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 0.9rem 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.65rem;
+      flex-shrink: 0;
+    }
+
+    .map-header-left {
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+
+    .map-badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text3); border: 1px solid var(--border2);
+      padding: 0.28rem 0.75rem; border-radius: 20px;
+    }
+
+    .map-title {
+      font-size: 0.95rem; font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .map-sub {
+      font-size: 0.78rem; color: var(--text2);
+    }
+
+    .map-header-right {
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+
+    .map-btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.38rem 0.9rem; border-radius: 7px;
+      font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border2);
+      background: transparent; color: var(--text2);
+      text-decoration: none;
+      transition: var(--t);
+    }
+    .map-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.04); }
+    .map-btn.primary {
+      background: #fff; color: #000; border-color: transparent;
+    }
+    .map-btn.primary:hover { background: #e8e8e8; }
+
+    /* ══════════════════════════════
+       MAP FRAME
+    ══════════════════════════════ */
+    .map-frame-container {
+      flex: 1;
+      position: relative;
+      min-height: 0;
+    }
+
+    .map-frame-container iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    .map-loading {
+      position: absolute;
+      inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 1rem;
+      background: var(--bg);
+      z-index: 2;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+    .map-loading.hidden {
+      opacity: 0;
+    }
+    .map-loading-icon { font-size: 2.5rem; animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse {
+      0%,100% { transform: scale(1); opacity: 1; }
+      50%      { transform: scale(1.1); opacity: 0.6; }
+    }
+    .map-loading-text {
+      font-size: 0.875rem; color: var(--text2);
+    }
+    .spinner {
+      width: 22px; height: 22px;
+      border: 2px solid var(--border2);
+      border-top-color: var(--text2);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ══════════════════════════════
+       FOOTER
+    ══════════════════════════════ */
+    footer {
+      background: var(--bg2); border-top: 1px solid var(--border);
+      padding: 1.1rem 2rem;
+      flex-shrink: 0;
+    }
+    .footer-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center;
+      justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;
+    }
+    .footer-logo { font-weight: 800; font-size: 0.95rem; letter-spacing: -0.02em; }
+    .footer-logo em { color: var(--text3); font-style: normal; font-weight: 400; }
+    .footer-links {
+      display: flex; gap: 1.5rem; list-style: none;
+    }
+    .footer-links a {
+      color: var(--text3); text-decoration: none;
+      font-size: 0.8rem; transition: color var(--t);
+    }
+    .footer-links a:hover { color: var(--text2); }
+    .footer-copy { font-size: 0.78rem; color: var(--text3); }
+
+    /* ══════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════ */
+    @media (max-width: 700px) {
+      .nav-links { display: none; }
+      .hamburger { display: flex; }
+      .map-header { padding: 0.75rem 1.25rem; }
+      .map-sub { display: none; }
+    }
+    @media (max-width: 480px) {
+      .map-btn span { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ NAV ══ -->
+<nav id="nav" class="scrolled">
+  <a class="nav-logo" href="index.html">Legacy<em>MC</em></a>
+  <ul class="nav-links">
+    <li><a href="index.html#features">Funktioner</a></li>
+    <li><a href="index.html#leaderboard">Toplist</a></li>
+    <li><a href="index.html#discord">Discord</a></li>
+    <li><a href="index.html#rules">Regler</a></li>
+    <li><a href="map.html" class="active">🗺️ Kort</a></li>
+    <li><a href="index.html#join">Spil Nu</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="server-pill unknown" id="serverPill">
+      <div class="s-dot"></div>
+      <span id="serverPillText">Checking…</span>
+    </div>
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- ══ MOBILE MENU ══ -->
+<nav class="mobile-menu" id="mobileMenu">
+  <a href="index.html#features">Funktioner</a>
+  <a href="index.html#leaderboard">Toplist</a>
+  <a href="index.html#discord">Discord</a>
+  <a href="index.html#rules">Regler</a>
+  <a href="map.html">🗺️ Kort</a>
+  <a href="index.html#join">Spil Nu</a>
+</nav>
+
+<!-- ══ MAP WRAPPER ══ -->
+<div class="map-wrapper">
+
+  <!-- Map header bar -->
+  <div class="map-header">
+    <div class="map-header-left">
+      <span class="map-badge">🗺️ &nbsp; Live</span>
+      <div>
+        <div class="map-title">Verdenskort</div>
+        <div class="map-sub">Interaktivt kort over LegacyMC — se nationer, territorier og spillere i realtid</div>
+      </div>
+    </div>
+    <div class="map-header-right">
+      <a href="http://23.92.73.70:10472/" target="_blank" rel="noopener" class="map-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        <span>Åbn i nyt vindue</span>
+      </a>
+      <a href="index.html#join" class="map-btn primary">
+        ▶&nbsp;<span>Spil Nu</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Map frame -->
+  <div class="map-frame-container">
+    <div class="map-loading" id="mapLoading">
+      <div class="map-loading-icon">🌍</div>
+      <div class="spinner"></div>
+      <div class="map-loading-text">Indlæser verdenskort…</div>
+    </div>
+    <iframe
+      id="mapFrame"
+      src="http://23.92.73.70:10472/"
+      title="LegacyMC Verdenskort"
+      allowfullscreen
+      loading="eager"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"
+    ></iframe>
+  </div>
+
+</div>
+
+<!-- ══ FOOTER ══ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">Legacy<em>MC</em></div>
+    <ul class="footer-links">
+      <li><a href="index.html#features">Funktioner</a></li>
+      <li><a href="index.html#leaderboard">Toplist</a></li>
+      <li><a href="index.html#rules">Regler</a></li>
+      <li><a href="https://discord.com/invite/WMczJTDk" target="_blank" rel="noopener">Discord</a></li>
+    </ul>
+    <div class="footer-copy">© 2025 LegacyMC · EarthSMP</div>
+  </div>
+</footer>
+
+<script>
+const SERVER_IP = 'Spil.LegacyMC.dk';
+
+/* ═══════════════ NAVBAR SCROLL ═══════════════ */
+window.addEventListener('scroll', () => {
+  document.getElementById('nav').classList.toggle('scrolled', scrollY > 8);
+}, { passive: true });
+
+/* ═══════════════ MOBILE MENU ═══════════════ */
+const hamburger  = document.getElementById('hamburger');
+const mobileMenu = document.getElementById('mobileMenu');
+
+hamburger.addEventListener('click', () => {
+  hamburger.classList.toggle('open');
+  mobileMenu.classList.toggle('open');
+});
+mobileMenu.querySelectorAll('a').forEach(a =>
+  a.addEventListener('click', () => {
+    hamburger.classList.remove('open');
+    mobileMenu.classList.remove('open');
+  })
+);
+
+/* ═══════════════ MAP LOADING OVERLAY ═══════════════ */
+const mapFrame   = document.getElementById('mapFrame');
+const mapLoading = document.getElementById('mapLoading');
+
+mapFrame.addEventListener('load', () => {
+  mapLoading.classList.add('hidden');
+  setTimeout(() => { mapLoading.style.display = 'none'; }, 500);
+});
+
+// Fallback: hide overlay after 12s regardless
+setTimeout(() => {
+  mapLoading.classList.add('hidden');
+  setTimeout(() => { mapLoading.style.display = 'none'; }, 500);
+}, 12000);
+
+/* ═══════════════ SERVER STATUS ═══════════════ */
+async function loadServerStatus() {
+  const pill = document.getElementById('serverPill');
+  const text = document.getElementById('serverPillText');
+  try {
+    const r    = await fetch(`https://api.mcstatus.io/v2/status/java/${encodeURIComponent(SERVER_IP)}`);
+    const data = await r.json();
+    if (data.online) {
+      pill.className = 'server-pill';
+      const on  = data.players?.online ?? 0;
+      const max = data.players?.max   ?? 0;
+      text.textContent = `${on}/${max} online`;
+    } else {
+      pill.className   = 'server-pill offline';
+      text.textContent = 'Offline';
+    }
+  } catch {
+    pill.className   = 'server-pill unknown';
+    text.textContent = 'Ukendt';
+  }
+}
+
+loadServerStatus();
+setInterval(loadServerStatus, 60_000);
+</script>
+</body>
+</html>
