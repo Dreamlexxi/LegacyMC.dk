@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="LegacyMC — Det ultimative EarthSMP Minecraft oplevelse. Byg nationer, smi alliancer, erobre verden." />
-  <title>LegacyMC — EarthSMP</title>
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <title>LegacyMC — Minecraft</title>
+  <link rel="icon" type="image/x-icon" href="images/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -749,10 +749,11 @@
       <p class="sh-desc">Bedste spillere på tværs af alle kategorier — opdateres automatisk.</p>
     </div>
     <div class="lb-tabs reveal" id="lbTabs">
-      <button class="lb-tab active" data-cat="kills">☠️ Drab</button>
-      <button class="lb-tab" data-cat="deaths">💀 Dødsfald</button>
-      <button class="lb-tab" data-cat="playtime">⏱️ Spilletid</button>
+      <button class="lb-tab active" data-cat="money">💰 Penge</button>
       <button class="lb-tab" data-cat="blocks">🧱 Blokke</button>
+      <button class="lb-tab" data-cat="playtime">⏱️ Spilletid</button>
+      <button class="lb-tab" data-cat="kills">☠️ Drab</button>
+      <button class="lb-tab" data-cat="deaths">💀 Dødsfald</button>
     </div>
     <div class="lb-wrap reveal d1" id="lbWrap">
       <div class="lb-empty"><div class="spinner"></div>&nbsp; Indlæser…</div>
@@ -872,11 +873,14 @@
       <li><a href="#rules">Regler</a></li>
       <li><a href="https://discord.com/invite/WMczJTDk" target="_blank" rel="noopener">Discord</a></li>
     </ul>
-    <div class="footer-copy">© 2026 LegacyMC · EarthSMP</div>
+    <div class="footer-copy">© 2025 LegacyMC · EarthSMP</div>
   </div>
 </footer>
 
 <script>
+/* ═══════════════════════════════════════════════════
+   CONFIG — edit these values to match your server
+═══════════════════════════════════════════════════ */
 const SERVER_IP      = 'Spil.LegacyMC.dk';
 const DISCORD_ID     = '1459898877300707415';
 const DISCORD_INVITE = 'https://discord.com/invite/WMczJTDk';
@@ -1045,6 +1049,8 @@ const CAT_CONFIG = {
   deaths:  { field: 'deaths',        label: 'Dødsfald',  fmt: (v)    => Number(v).toLocaleString('da-DK') },
   playtime:{ field: 'playtimeHours', label: 'Spilletid', fmt: (v, p) => p.playtimeFormatted || `${v}t`   },
   blocks:  { field: 'blocksPlaced',  label: 'Blokke',    fmt: (v)    => Number(v).toLocaleString('da-DK') },
+  money:   { field: 'balanceRaw',    label: 'Penge',     fmt: (v)    => `$${Number(v).toLocaleString('da-DK')}` },
+
 };
 
 let activeTab  = 'kills';
@@ -1126,7 +1132,7 @@ document.getElementById('lbTabs').addEventListener('click', e => {
   loadLB(activeTab);
 });
 
-loadLB('kills');
+loadLB('money');
 </script>
 </body>
 </html>
