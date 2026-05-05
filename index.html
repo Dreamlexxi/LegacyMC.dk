@@ -356,6 +356,36 @@
     .lb-tab:hover:not(.active) { color: var(--text); background: rgba(255,255,255,0.05); }
     .lb-tab.active { background: #fff; color: #000; }
 
+    /* Awards spotlight */
+    .awards-bar {
+      display: flex; align-items: center; gap: 1.1rem;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 0.9rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .awards-bar-label {
+      font-size: 0.68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text3); white-space: nowrap;
+    }
+    .awards-bar-sep {
+      width: 1px; height: 28px;
+      background: var(--border2); flex-shrink: 0;
+    }
+    .awards-player {
+      display: flex; align-items: center; gap: 0.65rem; flex: 1; min-width: 0;
+    }
+    .awards-avatar {
+      width: 30px; height: 30px; border-radius: 4px;
+      image-rendering: pixelated; background: var(--card2); flex-shrink: 0;
+    }
+    .awards-name { font-size: 0.875rem; font-weight: 600; }
+    .awards-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.845rem; font-weight: 700;
+      color: #f59e0b; white-space: nowrap;
+    }
+
     .lb-wrap {
       background: var(--card);
       border: 1px solid var(--border);
@@ -748,6 +778,13 @@
       <h2 class="sh-title">Live Toplist</h2>
       <p class="sh-desc">Bedste spillere på tværs af alle kategorier — opdateres automatisk.</p>
     </div>
+    <div class="awards-bar reveal" id="awardsBar">
+      <span class="awards-bar-label">🏆 Flest præmier</span>
+      <div class="awards-bar-sep"></div>
+      <div class="awards-player" id="awardsPlayer">
+        <div class="lb-empty" style="padding:0;font-size:0.8rem"><div class="spinner" style="width:14px;height:14px"></div>&nbsp; Indlæser…</div>
+      </div>
+    </div>
     <div class="lb-tabs reveal" id="lbTabs">
       <button class="lb-tab active" data-cat="money">💰 Penge</button>
       <button class="lb-tab" data-cat="blocks">🧱 Blokke</button>
@@ -1116,10 +1153,47 @@ async function loadLB(cat) {
       lbCacheTs = now;
     }
     renderLB(lbCache, cat);
+    renderAwards(lbCache);
   } catch (err) {
     wrap.innerHTML = '<div class="lb-empty">Kunne ikke indlæse toplist.</div>';
     console.error('Leaderboard fejl:', err);
   }
+}
+
+// Awards spotlight — counts how many leaderboard categories each player leads
+function renderAwards(rawPlayers) {
+  const el = document.getElementById('awardsPlayer');
+  if (!rawPlayers?.length) {
+    el.innerHTML = '<span style="color:var(--text3);font-size:0.8rem">Ingen data tilgængelig.</span>';
+    return;
+  }
+
+  // Tally wins per player across all categories
+  const wins = {};
+  for (const cfg of Object.values(CAT_CONFIG)) {
+    const best = rawPlayers.reduce((a, b) =>
+      (Number(b[cfg.field] ?? 0) > Number(a[cfg.field] ?? 0)) ? b : a
+    );
+    wins[best.username] = (wins[best.username] ?? 0) + 1;
+  }
+
+  // Find the player with the most wins
+  const topUsername = Object.keys(wins).reduce((a, b) => wins[b] > wins[a] ? b : a);
+  const topPlayer   = rawPlayers.find(p => p.username === topUsername);
+  const count       = wins[topUsername];
+
+  const avatarSrc = topPlayer?.uuid
+    ? `https://api.mineatar.io/face/${esc(topPlayer.uuid)}?scale=2&overlay=true`
+    : `https://api.mineatar.io/face/00000000-0000-0000-0000-000000000000?scale=2`;
+
+  el.innerHTML = `
+    <img class="awards-avatar"
+      src="${avatarSrc}"
+      alt="${esc(topUsername)}"
+      loading="lazy"
+      onerror="this.src='https://api.mineatar.io/face/00000000-0000-0000-0000-000000000000?scale=2'">
+    <span class="awards-name">${esc(topUsername)}</span>
+    <span class="awards-count">${count} ${count === 1 ? 'kategori' : 'kategorier'}</span>`;
 }
 
 // Tab switching
